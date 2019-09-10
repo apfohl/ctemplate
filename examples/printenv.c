@@ -10,18 +10,19 @@
 /* format function that truncates */
 
 static void
-truncate(const char *p, FILE *out) {
+truncate(const char *p, FILE *out)
+{
     if (strlen(p) > 45) {
         fwrite(p, 40, 1, out);
         fputs(" ... ", out);
-    }
-    else {
+    } else {
         fputs(p, out);
     }
 }
 
 int
-main(int argc, char **argv, char **env) {
+main(int argc, char **argv, char **env)
+{
     int i;
     char num[32];
     char *p;
@@ -35,7 +36,7 @@ main(int argc, char **argv, char **env) {
     for (i = 0; i < argc; i++) {
         sprintf(num, "%d", i);
         loop = TMPL_add_varlist(loop, TMPL_add_var(0,
-            "anum", num, "avalue", argv[i], 0));
+                                "anum", num, "avalue", argv[i], 0));
     }
 
     /* add loop variable to top level variable list */
@@ -54,8 +55,8 @@ main(int argc, char **argv, char **env) {
         if ((p = strchr(env[i], '=')) != 0) {
             *p = 0;
             loop = TMPL_add_varlist(loop, TMPL_add_var(0,
-                "ename", env[i], "evalue", p + 1, 0));
-            *p = '='; 
+                                    "ename", env[i], "evalue", p + 1, 0));
+            *p = '=';
         }
     }
 
@@ -63,7 +64,7 @@ main(int argc, char **argv, char **env) {
 
     sprintf(num, "%d", i);
     loop = TMPL_add_varlist(loop, TMPL_add_var(0,
-        "total", num, 0));
+                            "total", num, 0));
 
     /* add the loop variable to the top level variable list */
 

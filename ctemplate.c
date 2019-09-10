@@ -138,7 +138,7 @@ struct template {
     FILE *errout;          /* error output file pointer */
     tagnode *roottag;      /* root of parse tree */
     const TMPL_fmtlist
-        *fmtlist;          /* list of format functions */
+    *fmtlist;              /* list of format functions */
 
     /* scanner and parser state variables */
 
@@ -207,7 +207,8 @@ struct TMPL_loop {
 /* mymalloc() is a malloc wrapper that exits on failure */
 
 static void *
-mymalloc(size_t size) {
+mymalloc(size_t size)
+{
     void *ret = malloc(size);
     if (ret == 0) {
         fputs("C Template library: out of memory\n", stderr);
@@ -224,7 +225,7 @@ mymalloc(size_t size) {
 
 static template *
 newtemplate(const char *filename, const char *tmplstr,
-    const TMPL_fmtlist *fmtlist, FILE *out, FILE *errout)
+            const TMPL_fmtlist *fmtlist, FILE *out, FILE *errout)
 {
     template *t;
     FILE *fp;
@@ -239,19 +240,17 @@ newtemplate(const char *filename, const char *tmplstr,
     }
     if (tmplstr == 0) {
         if ((fp = fopen(filename, "r")) != 0 &&
-            fstat(fileno(fp), &stb) == 0 &&
-            S_ISREG(stb.st_mode) != 0 &&
-            (buf = (char *) mymalloc(stb.st_size + 1)) != 0 &&
-            (stb.st_size == 0 ||
-            fread(buf, 1, stb.st_size, fp) == stb.st_size))
-        {
+                fstat(fileno(fp), &stb) == 0 &&
+                S_ISREG(stb.st_mode) != 0 &&
+                (buf = (char *) mymalloc(stb.st_size + 1)) != 0 &&
+                (stb.st_size == 0 ||
+                 fread(buf, 1, stb.st_size, fp) == stb.st_size)) {
             fclose(fp);
             buf[stb.st_size] = 0;
-        }
-        else {
+        } else {
             if (errout != 0) {
                 fprintf(errout, "C Template library: failed to read "
-                    "template from file \"%s\"\n", filename);
+                        "template from file \"%s\"\n", filename);
             }
             if (buf != 0) {
                 free(buf);
@@ -281,25 +280,26 @@ newtemplate(const char *filename, const char *tmplstr,
 /* newtag() allocates a new tagnode */
 
 static tagnode *
-newtag(template *t, tag_kind kind) {
+newtag(template *t, tag_kind kind)
+{
     tagnode *ret;
 
-    switch(kind) {
+    switch (kind) {
 
-    /*
-     * The following tags are simple parse tokens that are
-     * never linked into the parse tree so they share storage.
-     */
+        /*
+         * The following tags are simple parse tokens that are
+         * never linked into the parse tree so they share storage.
+         */
 
-    case tag_else:
-    case tag_endif:
-    case tag_endloop:
-        ret = &t->reusable;
-        break;
+        case tag_else:
+        case tag_endif:
+        case tag_endloop:
+            ret = &t->reusable;
+            break;
 
-    default:
-        ret = (tagnode *) mymalloc(sizeof(*ret));
-        break;
+        default:
+            ret = (tagnode *) mymalloc(sizeof(*ret));
+            break;
     }
     ret->kind = kind;
     ret->next = 0;
@@ -313,45 +313,46 @@ newtag(template *t, tag_kind kind) {
  */
 
 static void
-freetag(tagnode *tag) {
+freetag(tagnode *tag)
+{
     template *t;
 
     if (tag == 0) {
         return;
     }
-    switch(tag->kind) {
+    switch (tag->kind) {
 
-    case tag_var:
-        free((void *) tag->tag.var.varname);
-        if (tag->tag.var.dfltval != 0) {
-            free((void *) tag->tag.var.dfltval);
-        }
-        break;
+        case tag_var:
+            free((void *) tag->tag.var.varname);
+            if (tag->tag.var.dfltval != 0) {
+                free((void *) tag->tag.var.dfltval);
+            }
+            break;
 
-    case tag_if:
-    case tag_elsif:
-        free((void *) tag->tag.ifelse.varname);
-        if (tag->tag.ifelse.testval != 0) {
-            free((void *) tag->tag.ifelse.testval);
-        }
-        freetag(tag->tag.ifelse.tbranch);
-        freetag(tag->tag.ifelse.fbranch);
-        break;
+        case tag_if:
+        case tag_elsif:
+            free((void *) tag->tag.ifelse.varname);
+            if (tag->tag.ifelse.testval != 0) {
+                free((void *) tag->tag.ifelse.testval);
+            }
+            freetag(tag->tag.ifelse.tbranch);
+            freetag(tag->tag.ifelse.fbranch);
+            break;
 
-    case tag_loop:
-        free((void *) tag->tag.loop.loopname);
-        freetag(tag->tag.loop.body);
-        break;
+        case tag_loop:
+            free((void *) tag->tag.loop.loopname);
+            freetag(tag->tag.loop.body);
+            break;
 
-    case tag_include:
-        free((void *) tag->tag.include.filename);
-        if ((t = tag->tag.include.tmpl) != 0) {
-            free((void *) t->filename);
-            free((void *) t->tmplstr);
-            freetag(t->roottag);
-            free(t);
-        }
-        break;
+        case tag_include:
+            free((void *) tag->tag.include.filename);
+            if ((t = tag->tag.include.tmpl) != 0) {
+                free((void *) t->filename);
+                free((void *) t->tmplstr);
+                freetag(t->roottag);
+                free(t);
+            }
+            break;
     }
     freetag(tag->next);
     free(tag);
@@ -360,28 +361,29 @@ freetag(tagnode *tag) {
 /* map tag_kind to a human readable string */
 
 static const char *
-tagname(tag_kind kind) {
-    switch(kind) {
-    case tag_var:
-        return "TMPL_VAR";
-    case tag_if:
-        return "TMPL_IF";
-    case tag_elsif:
-        return "TMPL_ELSIF";
-    case tag_else:
-        return "TMPL_ELSE";
-    case tag_endif:
-        return "/TMPL_IF";
-    case tag_include:
-        return "TMPL_INCLUDE";
-    case tag_loop:
-        return "TMPL_LOOP";
-    case tag_break:
-        return "TMPL_BREAK";
-    case tag_cont:
-        return "TMPL_CONTINUE";
-    case tag_endloop:
-        return "/TMPL_LOOP";
+tagname(tag_kind kind)
+{
+    switch (kind) {
+        case tag_var:
+            return "TMPL_VAR";
+        case tag_if:
+            return "TMPL_IF";
+        case tag_elsif:
+            return "TMPL_ELSIF";
+        case tag_else:
+            return "TMPL_ELSE";
+        case tag_endif:
+            return "/TMPL_IF";
+        case tag_include:
+            return "TMPL_INCLUDE";
+        case tag_loop:
+            return "TMPL_LOOP";
+        case tag_break:
+            return "TMPL_BREAK";
+        case tag_cont:
+            return "TMPL_CONTINUE";
+        case tag_endloop:
+            return "/TMPL_LOOP";
     }
     return "unknown";
 }
@@ -393,7 +395,8 @@ tagname(tag_kind kind) {
  */
 
 static const char *
-scanspaces(template *t, const char *p) {
+scanspaces(template *t, const char *p)
+{
     while (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') {
         if (*p++ == '\n') {
             t->linenum++;
@@ -409,7 +412,8 @@ scanspaces(template *t, const char *p) {
  */
 
 static int
-scancomment(template *t, const char *p) {
+scancomment(template *t, const char *p)
+{
     int linenum = t->linenum;
 
     if (p[0] != '<' || p[1] != '*') {
@@ -429,7 +433,7 @@ scancomment(template *t, const char *p) {
 
     if (t->errout != 0) {
         fprintf(t->errout, "\"<*\" in file \"%s\" line %d "
-            "has no \"*>\"\n", t->filename, linenum);
+                "has no \"*>\"\n", t->filename, linenum);
     }
     t->error = 1;
     return 0;
@@ -445,7 +449,8 @@ scancomment(template *t, const char *p) {
  */
 
 static char *
-scanattr(template *t, const char *attrname, const char *p) {
+scanattr(template *t, const char *attrname, const char *p)
+{
     int i = strlen(attrname);
     int quote = 0;
     char *ret;
@@ -471,8 +476,7 @@ scanattr(template *t, const char *attrname, const char *p) {
             return 0;
         }
         t->scanptr = p + i + 1;
-    }
-    else {
+    } else {
         for (i = 0; isalnum(p[i]) || p[i] == '.' || p[i] == '-'; i++)
             ;
         if (i == 0) {
@@ -495,7 +499,8 @@ scanattr(template *t, const char *attrname, const char *p) {
  */
 
 static TMPL_fmtfunc
-findfmt(const TMPL_fmtlist *fmtlist, const char *name) {
+findfmt(const TMPL_fmtlist *fmtlist, const char *name)
+{
     for (; fmtlist != 0; fmtlist = fmtlist->next) {
         if (strcmp(fmtlist->name, name) == 0) {
             return fmtlist->fmtfunc;
@@ -511,7 +516,8 @@ findfmt(const TMPL_fmtlist *fmtlist, const char *name) {
  */
 
 static tagnode *
-scantag(template *t, const char *p) {
+scantag(template *t, const char *p)
+{
     tag_kind kind;
     int commentish = 0; /* true if tag enclosed by <!-- and --> */
     int hasname = 0;    /* true if tag has name= attribute */
@@ -535,43 +541,33 @@ scantag(template *t, const char *p) {
     if (strncasecmp(p, "TMPL_VAR", len = 8) == 0) {
         kind = tag_var;
         hasname = 1;
-    }
-    else if (strncasecmp(p, "TMPL_INCLUDE", len = 12) == 0) {
+    } else if (strncasecmp(p, "TMPL_INCLUDE", len = 12) == 0) {
         kind = tag_include;
         hasname = 1;
-    }
-    else if (strncasecmp(p, "TMPL_IF", len = 7) == 0) {
+    } else if (strncasecmp(p, "TMPL_IF", len = 7) == 0) {
         kind = tag_if;
         hasname = 1;
         container = 1;
-    }
-    else if (strncasecmp(p, "TMPL_ELSIF", len = 10) == 0) {
+    } else if (strncasecmp(p, "TMPL_ELSIF", len = 10) == 0) {
         kind = tag_elsif;
         hasname = 1;
-    }
-    else if (strncasecmp(p, "TMPL_ELSE", len = 9) == 0) {
+    } else if (strncasecmp(p, "TMPL_ELSE", len = 9) == 0) {
         kind = tag_else;
-    }
-    else if (strncasecmp(p, "/TMPL_IF", len = 8) == 0) {
+    } else if (strncasecmp(p, "/TMPL_IF", len = 8) == 0) {
         kind = tag_endif;
         container = 1;
-    }
-    else if (strncasecmp(p, "TMPL_LOOP", len = 9) == 0) {
+    } else if (strncasecmp(p, "TMPL_LOOP", len = 9) == 0) {
         kind = tag_loop;
         hasname = 1;
         container = 1;
-    }
-    else if (strncasecmp(p, "/TMPL_LOOP", len = 10) == 0) {
+    } else if (strncasecmp(p, "/TMPL_LOOP", len = 10) == 0) {
         kind = tag_endloop;
         container = 1;
-    }
-    else if (strncasecmp(p, "TMPL_BREAK", len = 10) == 0) {
+    } else if (strncasecmp(p, "TMPL_BREAK", len = 10) == 0) {
         kind = tag_break;
-    }
-    else if (strncasecmp(p, "TMPL_CONTINUE", len = 13) == 0) {
+    } else if (strncasecmp(p, "TMPL_CONTINUE", len = 13) == 0) {
         kind = tag_cont;
-    }
-    else {
+    } else {
         kind = 0;
         goto failure;
     }
@@ -591,64 +587,56 @@ scantag(template *t, const char *p) {
      * attribute. Attributes can come in any order.
      */
 
-    switch(kind) {
+    switch (kind) {
 
-    case tag_include:
-    case tag_loop:
-        if ((name = scanattr(t, "name", p)) != 0) {
-            p = scanspaces(t, t->scanptr);
-        }
-        break;
+        case tag_include:
+        case tag_loop:
+            if ((name = scanattr(t, "name", p)) != 0) {
+                p = scanspaces(t, t->scanptr);
+            }
+            break;
 
-    case tag_var:
-        while ((name  == 0 && (name  = scanattr(t, "name",    p)) != 0) ||
-               (fmt   == 0 && (fmt   = scanattr(t, "fmt",     p)) != 0) ||
-               (value == 0 && (value = scanattr(t, "default", p)) != 0))
-        {
-            p = scanspaces(t, t->scanptr);
-        }
-        break;
+        case tag_var:
+            while ((name  == 0 && (name  = scanattr(t, "name",    p)) != 0) ||
+                    (fmt   == 0 && (fmt   = scanattr(t, "fmt",     p)) != 0) ||
+                    (value == 0 && (value = scanattr(t, "default", p)) != 0)) {
+                p = scanspaces(t, t->scanptr);
+            }
+            break;
 
-    case tag_if:
-    case tag_elsif:
-        while ((name  == 0 && (name  = scanattr(t, "name",  p)) != 0) ||
-               (value == 0 && (value = scanattr(t, "value", p)) != 0))
-        {
-            p = scanspaces(t, t->scanptr);
-        }
-        break;
+        case tag_if:
+        case tag_elsif:
+            while ((name  == 0 && (name  = scanattr(t, "name",  p)) != 0) ||
+                    (value == 0 && (value = scanattr(t, "value", p)) != 0)) {
+                p = scanspaces(t, t->scanptr);
+            }
+            break;
 
-    /*
-     * These tags may have an optional "level =" attribute, which
-     * must be preceded by white space.
-     */
+        /*
+         * These tags may have an optional "level =" attribute, which
+         * must be preceded by white space.
+         */
 
-    case tag_break:
-    case tag_cont:
-        if (p != t->scanptr &&
-            (value = scanattr(t, "level", p)) != 0)
-        {
-            p = scanspaces(t, t->scanptr);
-        }
-        break;
+        case tag_break:
+        case tag_cont:
+            if (p != t->scanptr &&
+                    (value = scanattr(t, "level", p)) != 0) {
+                p = scanspaces(t, t->scanptr);
+            }
+            break;
     }
 
     /* check for end of tag */
 
     if (commentish == 0 && p[0] == '>') {
         t->scanptr = p + 1;
-    }
-    else if (commentish == 0 && container == 0 &&
-        p[0] == '/' && p[1] == '>')
-    {
+    } else if (commentish == 0 && container == 0 &&
+               p[0] == '/' && p[1] == '>') {
         t->scanptr = p + 2;
-    }
-    else if (commentish != 0 && p[0] == '-' &&
-        p[1] == '-' && p[2] == '>')
-    {
+    } else if (commentish != 0 && p[0] == '-' &&
+               p[1] == '-' && p[2] == '>') {
         t->scanptr = p + 3;
-    }
-    else {
+    } else {
         goto failure;
     }
 
@@ -659,69 +647,69 @@ scantag(template *t, const char *p) {
         goto failure;
     }
 
-    switch(kind) {
+    switch (kind) {
 
-    case tag_var:
-        func = 0;
-        if (fmt != 0) {
-            if ((func = findfmt(t->fmtlist, fmt)) == 0) {
-                err = "(bad \"fmt=\" attribute) ";
+        case tag_var:
+            func = 0;
+            if (fmt != 0) {
+                if ((func = findfmt(t->fmtlist, fmt)) == 0) {
+                    err = "(bad \"fmt=\" attribute) ";
+                    goto failure;
+                }
+                free(fmt);
+            }
+            tag = newtag(t, kind);
+            tag->tag.var.varname = name;
+            tag->tag.var.dfltval = value;
+            tag->tag.var.fmtfunc = func;
+            break;
+
+        case tag_include:
+            if (t->include_depth >= MAX_INCLUDE_DEPTH) {
+                err = "(check for include cycle) ";
                 goto failure;
             }
-            free(fmt);
-        }
-        tag = newtag(t, kind);
-        tag->tag.var.varname = name;
-        tag->tag.var.dfltval = value;
-        tag->tag.var.fmtfunc = func;
-        break;
+            tag = newtag(t, kind);
+            tag->tag.include.filename = name;
+            tag->tag.include.tmpl = 0;
+            break;
 
-    case tag_include:
-        if (t->include_depth >= MAX_INCLUDE_DEPTH) {
-            err = "(check for include cycle) ";
-            goto failure;
-        }
-        tag = newtag(t, kind);
-        tag->tag.include.filename = name;
-        tag->tag.include.tmpl = 0;
-        break;
+        case tag_loop:
+            tag = newtag(t, kind);
+            tag->tag.loop.loopname = name;
+            tag->tag.loop.body = 0;
+            break;
 
-    case tag_loop:
-        tag = newtag(t, kind);
-        tag->tag.loop.loopname = name;
-        tag->tag.loop.body = 0;
-        break;
-
-    case tag_break:
-    case tag_cont:
-        if (t->loop_depth < 1) {
-            err = "(not inside a loop) ";
-            goto failure;
-        }
-        level = 1;
-        if (value != 0) {
-            if ((level = atoi(value)) < 1 || level > t->loop_depth) {
-                err = "(bad \"level=\" attribute) ";
+        case tag_break:
+        case tag_cont:
+            if (t->loop_depth < 1) {
+                err = "(not inside a loop) ";
                 goto failure;
             }
-            free(value);
-        }
-        tag = newtag(t, kind);
-        tag->tag.breakcont.level = level;
-        break;
+            level = 1;
+            if (value != 0) {
+                if ((level = atoi(value)) < 1 || level > t->loop_depth) {
+                    err = "(bad \"level=\" attribute) ";
+                    goto failure;
+                }
+                free(value);
+            }
+            tag = newtag(t, kind);
+            tag->tag.breakcont.level = level;
+            break;
 
-    case tag_if:
-    case tag_elsif:
-        tag = newtag(t, kind);
-        tag->tag.ifelse.varname = name;
-        tag->tag.ifelse.testval = value;
-        tag->tag.ifelse.tbranch = 0;
-        tag->tag.ifelse.fbranch = 0;
-        break;
+        case tag_if:
+        case tag_elsif:
+            tag = newtag(t, kind);
+            tag->tag.ifelse.varname = name;
+            tag->tag.ifelse.testval = value;
+            tag->tag.ifelse.tbranch = 0;
+            tag->tag.ifelse.fbranch = 0;
+            break;
 
-    default:
-        tag = newtag(t, kind);
-        break;
+        default:
+            tag = newtag(t, kind);
+            break;
     }
     return tag;
 
@@ -741,7 +729,7 @@ failure:
     }
     if (kind != 0 && t->errout != 0) {
         fprintf(t->errout, "Ignoring bad %s tag %sin file \"%s\" line %d\n",
-            tagname(kind), err, t->filename, t->tagline);
+                tagname(kind), err, t->filename, t->tagline);
     }
     return 0;
 }
@@ -760,7 +748,8 @@ failure:
  */
 
 static void
-scan(template *t) {
+scan(template *t)
+{
     tagnode *tag = 0;
     const char *p;
     int i;
@@ -845,7 +834,8 @@ static tagnode *parselist(template *t, int stop);
  */
 
 static void
-parseif(template *t, int stop) {
+parseif(template *t, int stop)
+{
     tagnode *iftag = t->curtag;
     int linenum = t->tagline;
     int mystop = stop | tag_else | tag_elsif | tag_endif;
@@ -861,11 +851,10 @@ parseif(template *t, int stop) {
     }
     if (t->curtag != 0 && t->curtag->kind == tag_endif) {
         scan(t);  /* success, scan next tag */
-    }
-    else {
+    } else {
         if (t->errout != 0) {
             fprintf(t->errout, "TMPL_IF tag in file \"%s\" line %d "
-                "has no /TMPL_IF tag\n", t->filename, linenum);
+                    "has no /TMPL_IF tag\n", t->filename, linenum);
         }
         t->error = 1;
     }
@@ -885,7 +874,8 @@ parseif(template *t, int stop) {
  */
 
 static void
-parseloop(template *t, int stop) {
+parseloop(template *t, int stop)
+{
     tagnode *looptag = t->curtag;
     int linenum = t->tagline;
 
@@ -895,11 +885,10 @@ parseloop(template *t, int stop) {
 
     if (t->curtag != 0 && t->curtag->kind == tag_endloop) {
         scan(t);  /* success, scan next tag */
-    }
-    else {
+    } else {
         if (t->errout != 0) {
             fprintf(t->errout, "TMPL_LOOP tag in file \"%s\" line %d "
-                "has no /TMPL_LOOP tag\n", t->filename, linenum);
+                    "has no /TMPL_LOOP tag\n", t->filename, linenum);
         }
         t->error = 1;
     }
@@ -921,46 +910,47 @@ parseloop(template *t, int stop) {
  */
 
 static tagnode *
-parselist(template *t, int stop) {
+parselist(template *t, int stop)
+{
     tagnode *list = 0, *tail, *tag;
 
     scan(t);
     while ((tag = t->curtag) != 0) {
-        switch(tag->kind) {
+        switch (tag->kind) {
 
-        case tag_elsif:    /* check for terminator tag */
-        case tag_else:
-        case tag_endif:
-        case tag_endloop:
-            if ((tag->kind & stop) != 0) {
-                return list;
-            }
+            case tag_elsif:    /* check for terminator tag */
+            case tag_else:
+            case tag_endif:
+            case tag_endloop:
+                if ((tag->kind & stop) != 0) {
+                    return list;
+                }
 
-            /* unexpected terminator tag -- keep going */
+                /* unexpected terminator tag -- keep going */
 
-            if (t->errout != 0) {
-                fprintf(t->errout, "Unexpected %s tag in file \"%s\" "
-                    "line %d\n", tagname(tag->kind), t->filename,
-                    t->tagline);
-            }
-            t->error = 1;
-            scan(t);
-            if (tag->kind == tag_elsif) {
-                break;  /* tag linked to list to be freed later */
-            }
-            continue;   /* tag not linked to list */
+                if (t->errout != 0) {
+                    fprintf(t->errout, "Unexpected %s tag in file \"%s\" "
+                            "line %d\n", tagname(tag->kind), t->filename,
+                            t->tagline);
+                }
+                t->error = 1;
+                scan(t);
+                if (tag->kind == tag_elsif) {
+                    break;  /* tag linked to list to be freed later */
+                }
+                continue;   /* tag not linked to list */
 
-        case tag_if:
-            parseif(t, stop);
-            break;
+            case tag_if:
+                parseif(t, stop);
+                break;
 
-        case tag_loop:
-            parseloop(t, stop);
-            break;
+            case tag_loop:
+                parseloop(t, stop);
+                break;
 
-        default:
-            scan(t);
-            break;
+            default:
+                scan(t);
+                break;
         }
 
         /* link the tag into the list of tags */
@@ -968,8 +958,7 @@ parselist(template *t, int stop) {
         tag->next = 0;
         if (list == 0) {
             list = tail = tag;
-        }
-        else {
+        } else {
             tail->next = tag;
             tail = tag;
         }
@@ -988,10 +977,11 @@ parselist(template *t, int stop) {
  */
 
 static char *
-valueof(const char *varname, const TMPL_varlist *varlist) {
+valueof(const char *varname, const TMPL_varlist *varlist)
+{
     TMPL_var *var;
 
-    while(varlist != 0) {
+    while (varlist != 0) {
         for (var = varlist->var; var != 0; var = var->next) {
             if (strcmp(varname, var->name) == 0) {
                 return var->value;
@@ -1009,7 +999,8 @@ valueof(const char *varname, const TMPL_varlist *varlist) {
  */
 
 static TMPL_loop *
-findloop(const char *loopname, const TMPL_varlist *varlist) {
+findloop(const char *loopname, const TMPL_varlist *varlist)
+{
     TMPL_loop *loop;
 
     while (varlist != 0) {
@@ -1038,7 +1029,8 @@ findloop(const char *loopname, const TMPL_varlist *varlist) {
  */
 
 static int
-is_true(const tagnode *iftag, const TMPL_varlist *varlist) {
+is_true(const tagnode *iftag, const TMPL_varlist *varlist)
+{
     const char *testval = iftag->tag.ifelse.testval;
     const char *value;
     TMPL_loop *loop = 0;
@@ -1053,7 +1045,7 @@ is_true(const tagnode *iftag, const TMPL_varlist *varlist) {
         (testval == 0 && loop != 0) ||
 
         (testval != 0 && *testval == 0 && loop == 0 &&
-        (value == 0 || *value == 0)) ||
+         (value == 0 || *value == 0)) ||
 
         (testval != 0 && value != 0 && strcmp(value, testval) == 0);
 }
@@ -1071,7 +1063,8 @@ is_true(const tagnode *iftag, const TMPL_varlist *varlist) {
  */
 
 static void
-write_text(const char *p, int len, FILE *out) {
+write_text(const char *p, int len, FILE *out)
+{
     int i, k;
 
     for (i = 0; i < len; i++) {
@@ -1089,8 +1082,7 @@ write_text(const char *p, int len, FILE *out) {
             if (k < len && p[k] == '\n') {
                 if (p[i + 1] == '\\') {
                     i++;      /* skip first \ */
-                }
-                else {
+                } else {
                     i = k;    /* skip \ and line terminator */
                     continue;
                 }
@@ -1109,7 +1101,8 @@ write_text(const char *p, int len, FILE *out) {
  */
 
 static const char *
-newfilename(const char *inclfile, const char *parentfile) {
+newfilename(const char *inclfile, const char *parentfile)
+{
     char *newfile, *cp;
 
     newfile = mymalloc(strlen(parentfile) + strlen(inclfile));
@@ -1128,7 +1121,8 @@ newfilename(const char *inclfile, const char *parentfile) {
  */
 
 static void
-walk(template *t, tagnode *tag, const TMPL_varlist *varlist) {
+walk(template *t, tagnode *tag, const TMPL_varlist *varlist)
+{
     const char *value;
     TMPL_loop *loop;
     TMPL_varlist *vl;
@@ -1142,111 +1136,107 @@ walk(template *t, tagnode *tag, const TMPL_varlist *varlist) {
      */
 
     if (tag == 0 || t->break_level > 0 || t->cont_level > 0 ||
-        t->error != 0)
-    {
+            t->error != 0) {
         return;
     }
-    switch(tag->kind) {
+    switch (tag->kind) {
 
-    case tag_text:
-        write_text(tag->tag.text.start, tag->tag.text.len, t->out);
-        break;
-
-    case tag_var:
-        if ((value = valueof(tag->tag.var.varname, varlist)) == 0 &&
-            (value = tag->tag.var.dfltval) == 0)
-        {
+        case tag_text:
+            write_text(tag->tag.text.start, tag->tag.text.len, t->out);
             break;
-        }
 
-        /* Use the tag's format function or else just use fputs() */
+        case tag_var:
+            if ((value = valueof(tag->tag.var.varname, varlist)) == 0 &&
+                    (value = tag->tag.var.dfltval) == 0) {
+                break;
+            }
 
-        if (tag->tag.var.fmtfunc != 0) {
-            tag->tag.var.fmtfunc(value, t->out);
-        }
-        else {
-            fputs(value, t->out);
-        }
-        break;
+            /* Use the tag's format function or else just use fputs() */
 
-    case tag_if:
-    case tag_elsif:
-        if (is_true(tag, varlist)) {
-            walk(t, tag->tag.ifelse.tbranch, varlist);
-        }
-        else {
-            walk(t, tag->tag.ifelse.fbranch, varlist);
-        }
-        break;
-
-    case tag_loop:
-        if ((loop = findloop(tag->tag.loop.loopname, varlist)) == 0) {
+            if (tag->tag.var.fmtfunc != 0) {
+                tag->tag.var.fmtfunc(value, t->out);
+            } else {
+                fputs(value, t->out);
+            }
             break;
-        }
 
-        for (vl = loop->varlist; vl != 0; vl = vl->next) {
-            walk(t, tag->tag.loop.body, vl);
+        case tag_if:
+        case tag_elsif:
+            if (is_true(tag, varlist)) {
+                walk(t, tag->tag.ifelse.tbranch, varlist);
+            } else {
+                walk(t, tag->tag.ifelse.fbranch, varlist);
+            }
+            break;
 
-            /*
-             * if t->break_level is nonzero then we encountered a
-             * TMPL_BREAK tag inside this TMPL_LOOP so we need to
-             * break here.
-             */
-
-            if (t->break_level > 0) {
-                t->break_level--;
+        case tag_loop:
+            if ((loop = findloop(tag->tag.loop.loopname, varlist)) == 0) {
                 break;
             }
 
-            /*
-             * if t->cont_level is nonzero then we encountered a
-             * TMPL_CONTINUE inside this TMPL_LOOP.  Depending
-             * on the level we either break here or continue
-             */
+            for (vl = loop->varlist; vl != 0; vl = vl->next) {
+                walk(t, tag->tag.loop.body, vl);
 
-            if (t->cont_level > 0 && --t->cont_level > 0) {
-                break;
+                /*
+                 * if t->break_level is nonzero then we encountered a
+                 * TMPL_BREAK tag inside this TMPL_LOOP so we need to
+                 * break here.
+                 */
+
+                if (t->break_level > 0) {
+                    t->break_level--;
+                    break;
+                }
+
+                /*
+                 * if t->cont_level is nonzero then we encountered a
+                 * TMPL_CONTINUE inside this TMPL_LOOP.  Depending
+                 * on the level we either break here or continue
+                 */
+
+                if (t->cont_level > 0 && --t->cont_level > 0) {
+                    break;
+                }
             }
-        }
-        break;
+            break;
 
-    /*
-     * For a TMPL_BREAK or TMPL_CONTINUE tag we terminate the walk
-     * of this TMPL_LOOP body and set t->break_level or t->cont_level
-     * to unwind the recursion.
-     */
+        /*
+         * For a TMPL_BREAK or TMPL_CONTINUE tag we terminate the walk
+         * of this TMPL_LOOP body and set t->break_level or t->cont_level
+         * to unwind the recursion.
+         */
 
-    case tag_break:
-        t->break_level = tag->tag.breakcont.level;
-        return;
+        case tag_break:
+            t->break_level = tag->tag.breakcont.level;
+            return;
 
-    case tag_cont:
-        t->cont_level = tag->tag.breakcont.level;
-        return;
+        case tag_cont:
+            t->cont_level = tag->tag.breakcont.level;
+            return;
 
-    case tag_include:
+        case tag_include:
 
-        /* if first visit, open and parse the included file */
+            /* if first visit, open and parse the included file */
 
-        if ((t2 = tag->tag.include.tmpl) == 0) {
-            newfile = newfilename(tag->tag.include.filename, t->filename);
-            t2 = newtemplate(newfile, 0, t->fmtlist,
-                t->out, t->errout);
-            if (t2 == 0) {
-                free((void *) newfile);
-                t->error = 1;
-                break;
+            if ((t2 = tag->tag.include.tmpl) == 0) {
+                newfile = newfilename(tag->tag.include.filename, t->filename);
+                t2 = newtemplate(newfile, 0, t->fmtlist,
+                                 t->out, t->errout);
+                if (t2 == 0) {
+                    free((void *) newfile);
+                    t->error = 1;
+                    break;
+                }
+                tag->tag.include.tmpl = t2;
+                t2->include_depth = t->include_depth + 1;
+                t2->roottag = parselist(t2, 0);
             }
-            tag->tag.include.tmpl = t2;
-            t2->include_depth = t->include_depth + 1;
-            t2->roottag = parselist(t2, 0);
-        }
 
-        /* walk the included file's parse tree */
+            /* walk the included file's parse tree */
 
-        walk(t2, t2->roottag, varlist);
-        t->error = t2->error;
-        break;
+            walk(t2, t2->roottag, varlist);
+            t->error = t2->error;
+            break;
     }
     walk(t, tag->next, varlist);
 }
@@ -1263,7 +1253,8 @@ walk(template *t, tagnode *tag, const TMPL_varlist *varlist) {
  */
 
 TMPL_varlist *
-TMPL_add_var(TMPL_varlist *varlist, ...) {
+TMPL_add_var(TMPL_varlist *varlist, ...)
+{
     va_list ap;
     const char *name, *value;
     TMPL_var *var;
@@ -1271,8 +1262,7 @@ TMPL_add_var(TMPL_varlist *varlist, ...) {
 
     va_start(ap, varlist);
     while ((name = va_arg(ap, char *)) != 0 &&
-        (value = va_arg(ap, char *)) != 0)
-    {
+            (value = va_arg(ap, char *)) != 0) {
         /*
          * get enough memory to store the TMPL_var struct and
          * the name string and the value string
@@ -1303,7 +1293,8 @@ TMPL_add_var(TMPL_varlist *varlist, ...) {
  */
 
 TMPL_varlist *
-TMPL_add_loop(TMPL_varlist *varlist, const char *name, TMPL_loop *loop) {
+TMPL_add_loop(TMPL_varlist *varlist, const char *name, TMPL_loop *loop)
+{
     TMPL_loop *lp;
 
     /* if sanity check fails, just return */
@@ -1319,8 +1310,7 @@ TMPL_add_loop(TMPL_varlist *varlist, const char *name, TMPL_loop *loop) {
     /* if sanity check for cycle fails, just return */
 
     for (lp = varlist->parent; lp != 0;
-        lp = lp->parent == 0 ? 0 : lp->parent->parent)
-    {
+            lp = lp->parent == 0 ? 0 : lp->parent->parent) {
         if (lp == loop) {
             return varlist;
         }
@@ -1341,7 +1331,8 @@ TMPL_add_loop(TMPL_varlist *varlist, const char *name, TMPL_loop *loop) {
  */
 
 TMPL_loop *
-TMPL_add_varlist(TMPL_loop *loop, TMPL_varlist *varlist) {
+TMPL_add_varlist(TMPL_loop *loop, TMPL_varlist *varlist)
+{
     TMPL_varlist *vl;
 
     /* if sanity check fails, just return */
@@ -1357,8 +1348,7 @@ TMPL_add_varlist(TMPL_loop *loop, TMPL_varlist *varlist) {
     /* if sanity check for cycle fails, just return */
 
     for (vl = loop->parent; vl != 0;
-        vl = vl->parent == 0 ? 0 : vl->parent->parent)
-    {
+            vl = vl->parent == 0 ? 0 : vl->parent->parent) {
         if (vl == varlist) {
             return loop;
         }
@@ -1367,8 +1357,7 @@ TMPL_add_varlist(TMPL_loop *loop, TMPL_varlist *varlist) {
     varlist->next = 0;
     if (loop->varlist == 0) {
         loop->varlist = loop->tail = varlist;
-    }
-    else {
+    } else {
         loop->tail->next = varlist;
         loop->tail = varlist;
     }
@@ -1378,7 +1367,8 @@ TMPL_add_varlist(TMPL_loop *loop, TMPL_varlist *varlist) {
 /* TMPL_free_varlist() recursively frees memory used by a TMPL_varlist */
 
 void
-TMPL_free_varlist(TMPL_varlist *varlist) {
+TMPL_free_varlist(TMPL_varlist *varlist)
+{
     TMPL_loop *loop, *loopnext;
     TMPL_var  *var,  *varnext;
 
@@ -1415,7 +1405,7 @@ TMPL_free_varlist(TMPL_varlist *varlist) {
 
 TMPL_fmtlist *
 TMPL_add_fmt(TMPL_fmtlist *fmtlist, const char *name,
-    TMPL_fmtfunc fmtfunc)
+             TMPL_fmtfunc fmtfunc)
 {
     TMPL_fmtlist *newfmt;
     if (name == 0 || fmtfunc == 0) {
@@ -1439,7 +1429,8 @@ TMPL_add_fmt(TMPL_fmtlist *fmtlist, const char *name,
 /* TMPL_free_fmtlist frees memory used by a format function list */
 
 void
-TMPL_free_fmtlist(TMPL_fmtlist *fmtlist) {
+TMPL_free_fmtlist(TMPL_fmtlist *fmtlist)
+{
     if (fmtlist != 0) {
         TMPL_free_fmtlist(fmtlist->next);
         free(fmtlist);
@@ -1458,8 +1449,8 @@ TMPL_free_fmtlist(TMPL_fmtlist *fmtlist) {
 
 int
 TMPL_write(const char *filename, const char *tmplstr,
-    const TMPL_fmtlist *fmtlist, const TMPL_varlist *varlist,
-    FILE *out, FILE *errout)
+           const TMPL_fmtlist *fmtlist, const TMPL_varlist *varlist,
+           FILE *out, FILE *errout)
 {
     int ret;
     template *t;
@@ -1485,41 +1476,42 @@ TMPL_write(const char *filename, const char *tmplstr,
  */
 
 void
-TMPL_encode_entity(const char *value, FILE *out) {
+TMPL_encode_entity(const char *value, FILE *out)
+{
     for (; *value != 0; value++) {
-        switch(*value) {
+        switch (*value) {
 
-        case '&':
-            fputs("&amp;", out);
-            break;
+            case '&':
+                fputs("&amp;", out);
+                break;
 
-        case '<':
-            fputs("&lt;", out);
-            break;
+            case '<':
+                fputs("&lt;", out);
+                break;
 
-        case '>':
-            fputs("&gt;", out);
-            break;
+            case '>':
+                fputs("&gt;", out);
+                break;
 
-        case '"':
-            fputs("&quot;", out);
-            break;
+            case '"':
+                fputs("&quot;", out);
+                break;
 
-        case '\'':
-            fputs("&#39;", out);
-            break;
+            case '\'':
+                fputs("&#39;", out);
+                break;
 
-        case '\n':
-            fputs("&#10;", out);
-            break;
+            case '\n':
+                fputs("&#10;", out);
+                break;
 
-        case '\r':
-            fputs("&#13;", out);
-            break;
+            case '\r':
+                fputs("&#13;", out);
+                break;
 
-        default:
-            fputc(*value, out);
-            break;
+            default:
+                fputc(*value, out);
+                break;
         }
     }
 }
@@ -1527,14 +1519,14 @@ TMPL_encode_entity(const char *value, FILE *out) {
 /* TMPL_encode_url() does URL encoding (%xx)  */
 
 void
-TMPL_encode_url(const char *value, FILE *out) {
+TMPL_encode_url(const char *value, FILE *out)
+{
     static const char hexdigit[] = "0123456789ABCDEF";
     int c;
 
     for (; *value != 0; value++) {
         if (isalnum(*value) || *value == '.' ||
-            *value == '-' || *value == '_')
-        {
+                *value == '-' || *value == '_') {
             fputc(*value, out);
             continue;
         }
@@ -1542,7 +1534,7 @@ TMPL_encode_url(const char *value, FILE *out) {
             fputc('+', out);
             continue;
         }
-        c = (unsigned char) *value;
+        c = (unsigned char) * value;
         fputc('%', out);
         fputc(hexdigit[c >> 4],  out);
         fputc(hexdigit[c & 0xf], out);

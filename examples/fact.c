@@ -4,7 +4,8 @@
 #include <ctemplate.h>
 
 int
-main(int argc, char **argv) {
+main(int argc, char **argv)
+{
     int n, f;
     char txt1[32], txt2[32];
     TMPL_varlist *mainlist, *vl;

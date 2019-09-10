@@ -54,12 +54,13 @@ static TMPL_loop *getloop(const char **argv);
  */
 
 static TMPL_varlist *
-getvarlist(const char **argv, int stop) {
+getvarlist(const char **argv, int stop)
+{
     const char *name, *value;
     TMPL_varlist *varlist = 0;
     TMPL_loop  *loop;
 
-    while((name = argv[idx++]) != 0) {
+    while ((name = argv[idx++]) != 0) {
         if (name[0] == '{' && name[1] == 0) {
             fprintf(stderr, "Unexpected '{' at argument %d\n", idx - 1);
             exit(1);
@@ -73,18 +74,16 @@ getvarlist(const char **argv, int stop) {
         }
         if ((value = argv[idx]) == 0) {
             fprintf(stderr, "Too few arguments: variable \"%s\" has "
-                "no value\n", name);
+                    "no value\n", name);
             exit(1);
         }
         if (value[0] == '{' && value[1] == 0) {
             loop = getloop(argv);
             varlist = TMPL_add_loop(varlist, name, loop);
-        }
-        else if (value[0] == '}' && value[1] == 0) {
+        } else if (value[0] == '}' && value[1] == 0) {
             fprintf(stderr, "Unexpected '}' at argument %d\n", idx);
             exit(1);
-        }
-        else {
+        } else {
             idx++;
             varlist = TMPL_add_var(varlist, name, value, 0);
         }
@@ -105,7 +104,8 @@ getvarlist(const char **argv, int stop) {
  */
 
 static TMPL_loop *
-getloop(const char **argv) {
+getloop(const char **argv)
+{
     TMPL_loop  *loop = 0;
     TMPL_varlist *varlist;
 
@@ -118,7 +118,8 @@ getloop(const char **argv) {
 }
 
 int
-main(int argc, const char **argv) {
+main(int argc, const char **argv)
+{
     TMPL_varlist *varlist;
     TMPL_fmtlist *fmtlist;
     int ret;
